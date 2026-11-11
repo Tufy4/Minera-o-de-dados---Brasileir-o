@@ -6,13 +6,14 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-import kagglehub
-
 SAIDA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
 SAIDA.mkdir(parents=True, exist_ok=True)
 
-# 1) Download do dataset (fica em cache em ~/.cache/kagglehub)
-pasta = Path(kagglehub.dataset_download("adaoduque/campeonato-brasileiro-de-futebol"))
+# 1) Usa o CSV local, se existir; senão baixa via kagglehub (cache em ~/.cache/kagglehub)
+pasta = Path(__file__).resolve().parent
+if not (pasta / "campeonato-brasileiro-full.csv").exists():
+    import kagglehub
+    pasta = Path(kagglehub.dataset_download("adaoduque/campeonato-brasileiro-de-futebol"))
 with open(pasta / "campeonato-brasileiro-full.csv", encoding="utf-8", newline="") as f:
     jogos = list(csv.DictReader(f))
 

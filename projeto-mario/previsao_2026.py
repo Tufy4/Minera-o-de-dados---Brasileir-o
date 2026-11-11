@@ -7,7 +7,7 @@ os modelos à tabela de 2026 com todos os jogos já disputados.
 Arquivos de entrada (na mesma pasta do script):
   brasileirao_limpo.csv        histórico limpo (gerado por brasileirao_pipeline.py)
   brasileirao_2026_jogos.csv   jogos de 2026 (gerado por coletar_2026.py)
-Saída:  situacao_atual_2026.csv
+Saída:  situacao_atual_2026.csv (ordenado do maior para o menor risco de rebaixamento)
 
 Uso:  python previsao_2026.py [pasta_de_saida]
 Requer: pandas, scikit-learn
@@ -113,11 +113,13 @@ saida = atual[["posicao", "time", "pontos", "jogos", "vitorias", "empates", "der
                *cols_prob, "prob_media", "zona_rebaixamento_hoje"]].copy()
 saida[["aproveitamento", "pontos_sobre_zona"]] = saida[["aproveitamento", "pontos_sobre_zona"]].round(2)
 saida[cols_prob + ["prob_media"]] = (saida[cols_prob + ["prob_media"]] * 100).round(1)
-saida = saida.sort_values("posicao")
+# Ordena pelo risco (regressão logística): 1º = maior chance de cair
+saida = saida.sort_values(["prob_logistica", "posicao"], ascending=[False, False])
+saida.insert(0, "ranking_risco", range(1, len(saida) + 1))
 saida.to_csv(SAIDA / "situacao_atual_2026.csv", index=False, encoding="utf-8-sig")
 
-print(f"\nTabela de 2026 ({len(j26)} jogos). Probabilidades em %:")
-print(saida[["posicao", "time", "pontos", "jogos", "saldo", "aproveitamento",
+print(f"\nTimes de 2026 do maior para o menor risco de queda ({len(j26)} jogos). Probabilidades em %:")
+print(saida[["ranking_risco", "posicao", "time", "pontos", "jogos", "saldo", "aproveitamento",
              "prob_arvore", "prob_random_forest", "prob_logistica", "prob_media"]]
       .to_string(index=False))
 print("\nArquivo salvo em:", (SAIDA / "situacao_atual_2026.csv").resolve())
