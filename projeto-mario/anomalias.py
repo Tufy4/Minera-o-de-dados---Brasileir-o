@@ -23,15 +23,6 @@ Método 2 - Isolation Forest (multivariado)
 Punição do STJD em 2013 (Portuguesa e Flamengo perderam 4 pontos) aplicada: sem ela, a tabela
 calculada pelos placares rebaixaria o Fluminense com 46 pontos, e ele seria a maior "anomalia"
 da base sem ter caído de verdade.
-
-Arquivos de entrada (na mesma pasta do script):
-  brasileirao_limpo.csv   histórico limpo (gerado por brasileirao_pipeline.py)
-Saídas:
-  anomalias_campanhas.csv     as 160 campanhas com as medidas dos dois métodos
-  anomalias_rebaixamento.png  pontos dos 8 últimos por temporada, com as anomalias destacadas
-
-Uso:  python anomalias.py [pasta_de_saida]
-Requer: pandas, scikit-learn, matplotlib
 """
 import sys
 from pathlib import Path

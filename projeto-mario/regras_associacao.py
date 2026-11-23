@@ -17,25 +17,6 @@ Atributos (todos medidos na rodada de corte):
   rebaixado      sim / nao                           (no fim do campeonato)
 Os tercis são calculados sobre todas as campanhas da base; os limites ficam em
 regras_discretizacao.csv.
-
-Medidas de cada regra X -> Y:
-  suporte     fração das campanhas que têm X e Y
-  confianca   entre as campanhas com X, fração que tem Y (para Y = rebaixado: P(caiu | X))
-  lift        confiança dividida pela frequência de Y (lift 3 = três vezes mais chance que o normal)
-Uma regra é marcada como "redundante" quando não melhora em pelo menos 5 pontos percentuais a
-confiança de uma regra mais simples (com parte dos mesmos itens). As listas impressas mostram
-só as não redundantes.
-
-O Apriori foi implementado aqui mesmo (função apriori), para não depender de biblioteca extra.
-
-Saídas:
-  regras_transacoes.csv      itens de cada campanha
-  regras_discretizacao.csv   limites dos tercis
-  regras_associacao.csv      regras X -> rebaixado=sim
-  regras_associacao.png      suporte x confiança das regras (cor = lift)
-
-Uso:  python regras_associacao.py [pasta_de_saida] [rodada]
-Requer: pandas, matplotlib
 """
 import sys
 from pathlib import Path

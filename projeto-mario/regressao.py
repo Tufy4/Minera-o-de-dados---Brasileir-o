@@ -4,30 +4,6 @@ dele numa rodada de corte (padrão: rodada 19, fim do 1º turno).
 Foco no rebaixamento: em cada temporada, os 4 times com menos pontos previstos são os
 "rebaixados previstos", e a previsão é comparada com a linha histórica de rebaixamento
 (pontos médios do 16º colocado, o último que escapa).
-
-Modelos:
-  Projecao simples     ritmo atual (pontos por jogo x 38). Não é treinada: serve de referência
-                       para saber se os modelos acrescentam algo ao "faz a conta do aproveitamento"
-  Regressao linear
-  Random Forest        Random Forest de regressão
-Validação: deixa uma temporada inteira de fora por vez (leave-one-season-out), 2006-2025.
-Métricas: MAE, RMSE e R² dos pontos finais; MAE só entre os 8 últimos colocados; e quantos dos
-4 rebaixados de cada temporada estavam entre os 4 com menos pontos previstos.
-
-Arquivos de entrada (na mesma pasta do script):
-  brasileirao_limpo.csv        histórico limpo (gerado por brasileirao_pipeline.py)
-  brasileirao_2026_jogos.csv   jogos de 2026 (gerado por coletar_2026.py), opcional
-Saídas:
-  regressao_validacao.csv        métricas de cada modelo na rodada de corte
-  regressao_por_rodada.csv       métricas de cada modelo em várias rodadas de corte
-  regressao_previsoes.csv        pontos previstos x reais de cada time-temporada (validação)
-  regressao_variaveis.csv        coeficientes da regressão linear e importâncias do Random Forest
-  regressao_previsto_vs_real.png
-  regressao_erro_por_rodada.png
-  regressao_2026.csv             pontos finais previstos para 2026 (só se houver o arquivo de 2026)
-
-Uso:  python regressao.py [pasta_de_saida] [rodada]
-Requer: pandas, scikit-learn, matplotlib
 """
 import sys
 from pathlib import Path

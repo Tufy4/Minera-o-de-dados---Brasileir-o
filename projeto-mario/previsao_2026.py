@@ -1,20 +1,26 @@
 """Situação atual do Brasileirão 2026 e chance de rebaixamento de cada time.
 
 Treina árvore de decisão (prof. 3), Random Forest e regressão logística com 2006-2025, olhando a
-situação de cada time na rodada RODADA_CORTE (a mais próxima do ponto em que 2026 está), e aplica
-os modelos à tabela de 2026 com todos os jogos já disputados.
+situação de cada time na rodada RODADA_CORTE, e aplica os modelos à tabela de 2026 com todos os
+jogos já disputados. RODADA_CORTE é calculada sozinha: é o número de jogos que os times de 2026
+já fizeram (mediana), para comparar 2026 com o histórico no mesmo ponto do campeonato.
 
 Arquivos de entrada (na mesma pasta do script):
   brasileirao_limpo.csv        histórico limpo (gerado por brasileirao_pipeline.py)
   brasileirao_2026_jogos.csv   jogos de 2026 (gerado por coletar_2026.py)
-Saída:  situacao_atual_2026.csv (ordenado do maior para o menor risco de rebaixamento)
+Saídas:
+  situacao_atual_2026.csv   ordenado do maior para o menor risco de rebaixamento
+  previsao_2026.png         probabilidade de queda de cada time (gráfico de barras)
 
 Uso:  python previsao_2026.py [pasta_de_saida]
-Requer: pandas, scikit-learn
+Requer: pandas, scikit-learn, matplotlib
 """
 import sys
 from pathlib import Path
 
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -24,7 +30,6 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier
 
-RODADA_CORTE = 34      # 2026 está com ~34 jogos por time
 N_REBAIXADOS = 4
 PASTA = Path(__file__).resolve().parent
 SAIDA = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
@@ -79,6 +84,10 @@ MODELOS = {
                                        LogisticRegression(class_weight="balanced", max_iter=1000)),
 }
 
+# --- 2026: jogos já disputados definem a rodada de corte
+j26 = pd.read_csv(PASTA / "brasileirao_2026_jogos.csv")
+RODADA_CORTE = int(round(linhas_por_time(j26).groupby("time").size().median()))
+
 # --- Histórico (2006-2025): situação na rodada de corte e se o time caiu no final
 hist = pd.read_csv(PASTA / "brasileirao_limpo.csv", dtype={"ID": "string"})
 hist = hist[(hist["temporada"] >= 2006) & (hist["temporada"] <= 2025)]
@@ -99,7 +108,6 @@ for nome, fab in MODELOS.items():
     print(f"  {nome:14s} AUC = {roc_auc_score(dados.rebaixado, p):.3f}")
 
 # --- 2026: tabela atual e previsão
-j26 = pd.read_csv(PASTA / "brasileirao_2026_jogos.csv")
 atual = com_features(tabela(linhas_por_time(j26)))
 for nome, fab in MODELOS.items():
     m = fab().fit(dados[FEATURES], dados["rebaixado"])
@@ -122,4 +130,29 @@ print(f"\nTimes de 2026 do maior para o menor risco de queda ({len(j26)} jogos).
 print(saida[["ranking_risco", "posicao", "time", "pontos", "jogos", "saldo", "aproveitamento",
              "prob_arvore", "prob_random_forest", "prob_logistica", "prob_media"]]
       .to_string(index=False))
-print("\nArquivo salvo em:", (SAIDA / "situacao_atual_2026.csv").resolve())
+# --- Gráfico: chance de queda de cada time (barras = regressão logística, o modelo de referência)
+AZUL, VERMELHO = "#2a6fb0", "#c8402f"
+g = saida.sort_values(["prob_logistica", "posicao"])          # maior risco fica no topo
+y = np.arange(len(g))
+fig, ax = plt.subplots(figsize=(9, 7.5))
+na_zona = (g.zona_rebaixamento_hoje == "sim").values
+ax.barh(y[na_zona], g.prob_logistica[na_zona], color=VERMELHO, alpha=.85,
+        label="regressão logística (time na zona hoje)")
+ax.barh(y[~na_zona], g.prob_logistica[~na_zona], color=AZUL, alpha=.85,
+        label="regressão logística (time fora da zona hoje)")
+ax.scatter(g.prob_random_forest, y, marker="D", s=22, color="black", zorder=3, label="Random Forest")
+ax.scatter(g.prob_arvore, y, marker="|", s=160, color="black", zorder=3, label="árvore de decisão")
+for yi, p in zip(y, g.prob_logistica):   # valores numa coluna fixa à direita, longe dos marcadores
+    ax.text(103, yi, f"{p:.1f}%".replace(".", ","), va="center", fontsize=8)
+ax.set_yticks(y, [f"{t} ({p} pts, {pos}º)" for t, p, pos in zip(g.time, g.pontos, g.posicao)])
+ax.axvline(50, color="gray", ls=":", lw=1)
+ax.set_xticks(range(0, 101, 20))
+ax.set(xlim=(0, 112), xlabel="Probabilidade de rebaixamento (%)",
+       title=f"Brasileirão 2026: chance de queda com {RODADA_CORTE} jogos por time")
+ax.spines[["top", "right"]].set_visible(False)
+ax.grid(axis="x", alpha=.25)
+ax.legend(frameon=False, loc="lower right", bbox_to_anchor=(0.88, 0.02), fontsize=8)
+fig.tight_layout()
+fig.savefig(SAIDA / "previsao_2026.png", dpi=130)
+
+print("\nArquivos salvos em:", SAIDA.resolve())
